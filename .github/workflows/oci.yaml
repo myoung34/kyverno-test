@@ -1,0 +1,84 @@
+---
+name: Release Policies
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  Release-Policies:
+    runs-on: ubuntu-latest
+
+    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+    permissions:
+      id-token: write
+      contents: write
+      packages: write
+
+    env:
+      # Used to setup Auth and OCI artifact location
+      OCI_REGISTRY: ghcr.io
+      # Assuming we are in the main branch, our OCI artifact will
+      # look something like ghcr.io/user/repo/policies:main
+      OCI_ARTIFACT_NAME: policies
+      OCI_ARTIFACT_VERSION: ${{ github.ref_name }}
+
+    steps:
+      - name: Install Kyverno CLI
+        uses: kyverno/action-install-cli@v0.2.0
+        with:
+          release: 'v1.15.2'
+
+      - name: Check install
+        run: kyverno version
+
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensure all tags are fetched
+
+      # Bump the tag
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          latest=$(git tag --sort=-v:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+          [[ -z ${latest} ]] && (echo "latest_tag=0.0.1" >> "$GITHUB_OUTPUT") || (echo "latest_tag=$latest" >> "$GITHUB_OUTPUT")
+
+      - name: Calculate new version
+        id: bump
+        run: |
+          tag="${{ steps.get_tag.outputs.latest_tag }}"
+          # Remove "v" if present
+          tag="${tag#v}"
+          IFS='.' read -r major minor patch <<< "$tag"
+          new_tag="$major.$minor.$((patch + 1))"
+          echo "New tag: $new_tag"
+          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
+          echo "major_tag_version=$major" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        run: |
+          git tag "${{ steps.bump.outputs.new_tag }}"
+          git push origin "${{ steps.bump.outputs.new_tag }}"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
+        with:
+          tag_name: ${{ steps.bump.outputs.new_tag }}
+          name: Release ${{ steps.bump.outputs.new_tag }}
+          draft: false
+          prerelease: false
+          files: ./*.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload OCI artifacts to GitHub packages
+        run: |
+          kyverno oci push \
+            ./policies.yaml \
+            -i ${OCI_REGISTRY}/${GITHUB_REPOSITORY}/${OCI_ARTIFACT_NAME}:${{ steps.bump.outputs.new_tag }}
+        env:
+          KYVERNO_EXPERIMENTAL: 1
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
