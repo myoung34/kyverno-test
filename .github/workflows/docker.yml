@@ -14,6 +14,9 @@ permissions:
 jobs:
   build_latest_docker_container:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
     steps:
       - name: Copy Repo Files
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
@@ -39,7 +42,7 @@ jobs:
           command: |
             docker buildx build \
               --file Dockerfile \
-              --platform linux/amd64,linux/arm64 \
+              --platform linux/${{ matrix.platform }} \
               --tag ghcr.io/${{ github.repository }}:latest \
               --push \
               --pull \
