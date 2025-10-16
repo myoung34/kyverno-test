@@ -80,7 +80,7 @@ pull_image_to_dir() {
     cd $destdir
     kyverno oci pull . -i ${IMAGE_BASE}:${tag}
     for file_to_fix in $(ls -1); do
-      cat ${file_to_fix} | yq '.metadata.annotations += {"managed-by": "kyverno-watcher"}' >fixed_${file_to_fix} && rm ${file_to_fix}
+      cat ${file_to_fix} | yq ".metadata.annotations += {\"managed-by\": \"kyverno-watcher\"} | .metadata.annotations += {\"policy-version\": \"${tag}\"}" >fixed_${file_to_fix} && rm ${file_to_fix}
     done
     popd >/dev/null 2>&1
   else
