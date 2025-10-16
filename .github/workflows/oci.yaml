@@ -69,14 +69,13 @@ jobs:
           name: Release ${{ steps.bump.outputs.new_tag }}
           draft: false
           prerelease: false
-          files: ./*.yaml
+          files: ./policies/*.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload OCI artifacts to GitHub packages
         run: |
-          kyverno oci push \
-            ./policies.yaml \
+          kyverno oci push policies \
             -i ${OCI_REGISTRY}/${GITHUB_REPOSITORY}/${OCI_ARTIFACT_NAME}:${{ steps.bump.outputs.new_tag }}
         env:
           KYVERNO_EXPERIMENTAL: 1
