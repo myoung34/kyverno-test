@@ -76,7 +76,7 @@ pull_image_to_dir() {
   echo "Pulling image ${IMAGE_BASE}:${tag} into $destdir ..."
   # Using GITHUB_TOKEN for GHCR auth; GitHub uses username as GITHUB_ACTOR (can be anything), token = GITHUB_TOKEN
   if kyverno version >/dev/null 2>&1; then
-    pushd . /dev/null 2>&1
+    pushd . >/dev/null 2>&1
     cd $destdir
     kyverno oci pull . -i ${IMAGE_BASE}:${tag}
     for file_to_fix in $(ls -1); do
