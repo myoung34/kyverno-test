@@ -1,0 +1,42 @@
+name: GitHub Actions Runner in Docker - Base
+on:
+  push:
+    paths:
+      - Dockerfile
+      - .github/workflows/docker.yml
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build_latest_docker_container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copy Repo Files
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          fetch-depth: 0  # Ensure all tags are fetched
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+        with:
+          image: tonistiigi/binfmt:qemu-v7.0.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Retry build and push
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 60
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --tag ghcr.io/${{ github.repository }}:latest \
+              --push \
+              --pull \
+              --cache-from type=gha \
+              --cache-to type=gha,mode=max \
+              .
