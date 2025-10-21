@@ -39,7 +39,7 @@ get_latest_tag_or_digest() {
   # endpoint: GET /users/:username/packages/container/:package_name/versions
   API="https://api.github.com/${GITHUB_API_OWNER_TYPE}/${GH_OWNER}/packages/container/${PACKAGE}/versions"
   # request and parse:
-  resp=$(curl -sSL -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" "$API")
+  resp=$(curl -sSL -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github.v3+json" "$API" --http1.1)
   if [ -z "$resp" ]; then
     echo ""
     return 1
