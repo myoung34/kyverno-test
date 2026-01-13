@@ -1,0 +1,25 @@
+apiVersion: kyverno.io/v1
+kind: Policy # This defines a namespaced policy
+metadata:
+  name: require-team-label
+  namespace: foo
+spec:
+  # This policy will only apply to resources within the "default" namespace
+  # (or whichever namespace it is deployed to).
+  background: true
+  rules:
+  - name: check-for-team-label
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      # failureAction can be set to "Audit" (report only) or "Enforce" (block the resource)
+      failureAction: Audit 
+      message: "Pods must have the 'team' label."
+      pattern:
+        metadata:
+          labels:
+            team: "?*" # Requires the 'team' label to have any non-empty value
+
